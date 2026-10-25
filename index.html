@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Your personal GATE CS preparation dashboard — organized study materials, progress tracking, and a structured study roadmap." />
+  <title>GATE HUB — CS Preparation Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Mobile Overlay ─────────────────────────────────── -->
+  <div id="sidebar-overlay" class="sidebar-overlay" aria-hidden="true"></div>
+
+  <!-- ── Sidebar ────────────────────────────────────────── -->
+  <aside id="sidebar" class="sidebar" aria-label="Main navigation">
+
+    <div class="sidebar-header">
+      <a href="#dashboard" class="logo" aria-label="GATE HUB Home">
+        <span class="logo-icon">🎯</span>
+        <div class="logo-text">
+          <span class="logo-title">GATE HUB</span>
+          <span class="logo-sub">CS Preparation</span>
+        </div>
+      </a>
+      <button id="sidebar-close" class="sidebar-close" aria-label="Close sidebar">✕</button>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Site navigation">
+      <a href="#dashboard"    class="nav-link" data-view="dashboard">    <span class="nav-icon">🏠</span><span>Dashboard</span>    </a>
+      <a href="#subjects"     class="nav-link" data-view="subjects">     <span class="nav-icon">📚</span><span>Subjects</span>     </a>
+      <a href="#roadmap"      class="nav-link" data-view="roadmap">      <span class="nav-icon">🗺️</span><span>Roadmap</span>      </a>
+      <a href="#gate-o-pedia" class="nav-link" data-view="gate-o-pedia"> <span class="nav-icon">📖</span><span>GATE-O-PEDIA</span></a>
+      <a href="#search"       class="nav-link" data-view="search">       <span class="nav-icon">🔍</span><span>Search</span>       </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-prog-row">
+        <span class="sidebar-prog-label">Overall Progress</span>
+        <span id="sb-pct" class="sidebar-pct">0%</span>
+      </div>
+      <div class="sidebar-prog-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="sb-bar" class="sidebar-prog-fill" style="width:0%"></div>
+      </div>
+      <div id="sb-stats" class="sidebar-mini-stats">0 of 0 PDFs completed</div>
+    </div>
+  </aside>
+
+  <!-- ── Main ───────────────────────────────────────────── -->
+  <main id="main" class="main">
+
+    <header class="topbar">
+      <button id="menu-btn" class="hamburger" aria-label="Open sidebar" aria-controls="sidebar" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="search-wrap" role="search">
+        <span class="search-icon-wrap" aria-hidden="true">🔍</span>
+        <input id="topbar-search" type="search" placeholder="Search subjects, topics, PDFs…" autocomplete="off" aria-label="Global search" spellcheck="false" />
+        <kbd class="search-hint">/ to focus</kbd>
+      </div>
+      <div class="topbar-end">
+        <span id="clock" class="clock" aria-label="Current time"></span>
+      </div>
+    </header>
+
+    <div id="content" class="content-area" role="main"></div>
+
+  </main>
+
+  <!-- ── PDF Viewer Modal ───────────────────────────────── -->
+  <div id="pdf-modal" class="pdf-modal" role="dialog" aria-modal="true" aria-labelledby="pdf-modal-title" hidden>
+    <div class="pdf-modal-overlay" id="pdf-modal-overlay"></div>
+    <div class="pdf-modal-shell">
+
+      <div class="pdf-modal-header">
+        <div class="pdf-modal-meta">
+          <span id="pdf-breadcrumb" class="pdf-breadcrumb"></span>
+          <h2 id="pdf-modal-title" class="pdf-modal-h2"></h2>
+        </div>
+        <div class="pdf-modal-actions">
+          <div class="pdf-nav-group">
+            <button id="pdf-prev" class="pdf-btn" title="Previous PDF">‹ Prev</button>
+            <span id="pdf-counter" class="pdf-counter">1 / 1</span>
+            <button id="pdf-next" class="pdf-btn" title="Next PDF">Next ›</button>
+          </div>
+          <div class="pdf-btn-group">
+            <button id="pdf-newtab"   class="pdf-btn" title="Open in new tab">↗ New Tab</button>
+            <button id="pdf-download" class="pdf-btn" title="Download">⬇ Download</button>
+            <button id="pdf-complete" class="pdf-btn pdf-complete-btn" title="Mark complete">✓ Complete</button>
+            <button id="pdf-close"    class="pdf-btn pdf-close-x" title="Close viewer">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pdf-modal-body">
+        <iframe id="pdf-iframe" class="pdf-iframe" title="PDF Viewer" src="about:blank"></iframe>
+        <div id="pdf-fallback" class="pdf-fallback" hidden>
+          <div class="pdf-fallback-box">
+            <div class="pdf-fallback-icon">📄</div>
+            <p>PDF cannot be embedded in this browser.<br/>Use the button below to open it.</p>
+            <button id="pdf-fallback-btn" class="btn btn-primary">Open PDF in New Tab ↗</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Toast Notifications ───────────────────────────── -->
+  <div id="toasts" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

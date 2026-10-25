@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Viewer — GATE HUB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117; --surface: #161b22; --border: rgba(255,255,255,.08);
+      --border-hover: rgba(255,255,255,.18);
+      --text: #e6edf3; --muted: #8b949e;
+      --accent: #58a6ff; --accent2: #3fb950; --bar-h: 58px;
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; }
+
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; height: var(--bar-h);
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 0 16px; z-index: 100;
+    }
+    .tb-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+    .tb-logo {
+      font-size: .95rem; font-weight: 700; color: var(--accent);
+      text-decoration: none; white-space: nowrap; flex-shrink: 0;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tb-logo:hover { opacity: .85; }
+    .tb-sep { color: var(--border); font-size: 1.2rem; flex-shrink: 0; }
+    .tb-meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .tb-breadcrumb { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tb-title { font-size: .88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+
+    .tb-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    .nav-btn {
+      background: rgba(88,166,255,.1); border: 1px solid rgba(88,166,255,.25);
+      color: var(--accent); border-radius: 8px; padding: 6px 14px;
+      font-size: .82rem; font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: all .15s; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .nav-btn:hover:not(:disabled) { background: rgba(88,166,255,.22); border-color: rgba(88,166,255,.45); }
+    .nav-btn:disabled { opacity: .25; cursor: not-allowed; }
+
+    .nav-counter {
+      font-size: .82rem; color: var(--muted); font-weight: 600;
+      min-width: 58px; text-align: center;
+      background: rgba(255,255,255,.04); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 8px;
+    }
+
+    .direct-btn {
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: 6px 12px;
+      font-size: .8rem; font-weight: 500; text-decoration: none; font-family: inherit;
+      transition: all .15s; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .direct-btn:hover { background: rgba(255,255,255,.1); border-color: var(--border-hover); }
+
+    .complete-btn {
+      background: rgba(63,185,80,.12); border: 1px solid rgba(63,185,80,.3);
+      color: var(--accent2); border-radius: 8px; padding: 6px 14px;
+      font-size: .82rem; font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: all .15s; display: inline-flex; align-items: center; gap: 5px;
+    }
+    .complete-btn.done {
+      background: #238636; color: #ffffff; border-color: #2ea043;
+    }
+    .complete-btn:hover { background: rgba(63,185,80,.25); }
+    .complete-btn.done:hover { background: #2ea043; }
+
+    .embed-wrap {
+      position: fixed; top: var(--bar-h); left: 0; right: 0; bottom: 0;
+      background: #000;
+    }
+    .pdf-embed { width: 100%; height: 100%; border: none; display: block; }
+
+    /* Side floating arrows */
+    .arrow-overlay {
+      position: fixed; top: 50%; transform: translateY(-50%); z-index: 60;
+      background: rgba(22,27,34,.75); border: 1px solid var(--border);
+      color: var(--text); font-size: 2rem; width: 44px; height: 84px; border-radius: 10px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all .15s; backdrop-filter: blur(8px); font-family: inherit;
+      user-select: none;
+    }
+    .arrow-overlay:hover:not(:disabled) {
+      background: rgba(88,166,255,.2); border-color: rgba(88,166,255,.4); color: var(--accent);
+    }
+    .arrow-overlay:disabled { opacity: .12; cursor: not-allowed; }
+    .arrow-left  { left: 10px; }
+    .arrow-right { right: 10px; }
+
+    /* Empty state */
+    .empty-state {
+      height: 100%; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 16px; padding: 24px; text-align: center;
+    }
+    .empty-icon { font-size: 3.5rem; }
+    .empty-title { font-size: 1.25rem; font-weight: 700; color: var(--text); }
+    .empty-desc { color: var(--muted); font-size: .9rem; max-width: 440px; line-height: 1.6; }
+    .empty-btn {
+      background: var(--accent); color: #090d16; font-weight: 700;
+      padding: 10px 22px; border-radius: 8px; text-decoration: none; font-size: .9rem;
+      margin-top: 8px; transition: opacity .15s;
+    }
+    .empty-btn:hover { opacity: .9; }
+
+    /* Toast */
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+    .toast {
+      background: #1c2128; border: 1px solid var(--border); color: var(--text);
+      padding: 10px 18px; border-radius: 10px; font-size: .84rem; font-weight: 500;
+      display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.5);
+      animation: slideIn .2s ease;
+    }
+    .toast.success { border-color: rgba(63,185,80,.5); }
+    @keyframes slideIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+
+    @media (max-width: 768px) {
+      .tb-breadcrumb { display: none; }
+      .arrow-overlay { display: none; }
+      .direct-btn { display: none; }
+      .topbar { padding: 0 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="tb-left">
+    <a href="index.html" class="tb-logo" title="Back to GATE HUB Dashboard">🎯 GATE HUB</a>
+    <span class="tb-sep">|</span>
+    <div class="tb-meta">
+      <span class="tb-breadcrumb" id="tb-breadcrumb">GATE CS Study Material</span>
+      <span class="tb-title" id="tb-title">Loading PDF…</span>
+    </div>
+  </div>
+
+  <div class="tb-right">
+    <button class="nav-btn" id="btn-prev" title="Previous PDF (←)" disabled>‹ Prev</button>
+    <span class="nav-counter" id="tb-counter">— / —</span>
+    <button class="nav-btn" id="btn-next" title="Next PDF (→)" disabled>Next ›</button>
+    <a id="direct-link" class="direct-btn" href="#" target="_blank" title="Open raw PDF in dedicated browser tab">↗ Direct</a>
+    <button class="complete-btn" id="btn-complete" title="Toggle completion status">✓ Mark Done</button>
+  </div>
+</header>
+
+<button class="arrow-overlay arrow-left" id="arr-prev" title="Previous PDF (←)" disabled>&#8249;</button>
+<button class="arrow-overlay arrow-right" id="arr-next" title="Next PDF (→)" disabled>&#8250;</button>
+
+<div class="embed-wrap" id="embed-wrap">
+  <iframe id="pdf-frame" class="pdf-embed" src="about:blank" title="PDF Viewer" allow="fullscreen"></iframe>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- Curriculum Data -->
+<script src="data.js"></script>
+
+<script>
+const PROG_KEY  = 'gate_hub_v1';
+const QUEUE_KEY = 'gate_viewer_queue';
+
+let queue = [];
+let idx = 0;
+let subjectName = '';
+let topicName = '';
+let currentSid = '';
+let currentTid = '';
+
+/* Progress Storage (synced with Dashboard) */
+function loadProg() {
+  try {
+    return JSON.parse(localStorage.getItem(PROG_KEY)) || { completed: {} };
+  } catch(_) {
+    return { completed: {} };
+  }
+}
+
+function saveProg(d) {
+  try {
+    localStorage.setItem(PROG_KEY, JSON.stringify(d));
+  } catch(_) {}
+}
+
+function isDone(p) {
+  if (!p) return false;
+  return !!loadProg().completed[p];
+}
+
+function toggleDone(p) {
+  if (!p) return false;
+  const d = loadProg();
+  if (!d.completed) d.completed = {};
+  if (d.completed[p]) {
+    delete d.completed[p];
+  } else {
+    d.completed[p] = Date.now();
+  }
+  saveProg(d);
+  return !!d.completed[p];
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = '<span>' + (type === 'success' ? '✓' : 'ℹ') + '</span><span>' + msg + '</span>';
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => {
+    el.style.transition = '.25s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(20px)';
+    setTimeout(() => el.remove(), 260);
+  }, 2400);
+}
+
+/* Resolve Queue from URL Params or data.js */
+function initQueue() {
+  const searchStr = window.location.search || (window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '');
+  const params = new URLSearchParams(searchStr);
+
+  currentSid = params.get('sid') || '';
+  currentTid = params.get('tid') || '';
+  const fileParam = params.get('file') || '';
+  const titleParam = params.get('title') || '';
+  idx = parseInt(params.get('idx') || '0', 10);
+  if (isNaN(idx) || idx < 0) idx = 0;
+
+  const data = window.studyData || {};
+
+  // Case 1: GATE-O-PEDIA special view
+  if (currentSid === 'gate-o-pedia') {
+    subjectName = 'GATE-O-PEDIA';
+    topicName = currentTid === 'planner' ? 'Lecture Planner' : 'Revision Sheets';
+    const allGop = [];
+    for (const [sKey, sObj] of Object.entries(data)) {
+      for (const [tKey, tObj] of Object.entries(sObj.topics || {})) {
+        for (const f of (tObj.files || [])) {
+          if (currentTid === 'planner' && f.type === 'Lecture Planner') allGop.push(f);
+          else if (currentTid !== 'planner' && f.type === 'GATE-O-PEDIA') allGop.push(f);
+        }
+      }
+    }
+    if (allGop.length) {
+      queue = allGop;
+      if (fileParam) {
+        const found = queue.findIndex(f => f.path === fileParam);
+        if (found >= 0) idx = found;
+      }
+    } else if (fileParam) {
+      queue = [{ name: titleParam || 'GATE-O-PEDIA', path: fileParam }];
+      idx = 0;
+    }
+    return;
+  }
+
+  // Case 2: Subject & Topic match in studyData
+  if (currentSid && currentTid && data[currentSid]?.topics?.[currentTid]) {
+    const s = data[currentSid];
+    const t = s.topics[currentTid];
+    subjectName = s.name || currentSid;
+    topicName = t.name || currentTid;
+    queue = t.files || [];
+    if (fileParam) {
+      const fIdx = queue.findIndex(f => f.path === fileParam);
+      if (fIdx >= 0) idx = fIdx;
+    }
+    if (idx >= queue.length) idx = Math.max(0, queue.length - 1);
+    return;
+  }
+
+  // Case 3: fileParam provided — search studyData to find its subject & topic
+  if (fileParam && Object.keys(data).length) {
+    for (const [sKey, sObj] of Object.entries(data)) {
+      for (const [tKey, tObj] of Object.entries(sObj.topics || {})) {
+        const found = (tObj.files || []).findIndex(f => f.path === fileParam);
+        if (found >= 0) {
+          currentSid = sKey;
+          currentTid = tKey;
+          subjectName = sObj.name;
+          topicName = tObj.name;
+          queue = tObj.files;
+          idx = found;
+          return;
+        }
+      }
+    }
+    // File not found in data, but path given
+    queue = [{ name: titleParam || fileParam.split('/').pop().replace(/\.pdf$/i, ''), path: fileParam }];
+    subjectName = 'GATE Study Material';
+    topicName = queue[0].name;
+    idx = 0;
+    return;
+  }
+
+  // Case 4: Fallback to localStorage gate_viewer_queue
+  try {
+    const saved = JSON.parse(localStorage.getItem(QUEUE_KEY) || '{}');
+    if (saved.queue && saved.queue.length) {
+      queue = saved.queue;
+      idx = +saved.idx || 0;
+      subjectName = saved.subjectName || 'Study Material';
+      topicName = saved.topicName || '';
+      return;
+    }
+  } catch(_) {}
+}
+
+/* UI updates */
+function updateNav() {
+  const hasPrev = idx > 0;
+  const hasNext = idx < queue.length - 1;
+  document.getElementById('btn-prev').disabled = !hasPrev;
+  document.getElementById('arr-prev').disabled = !hasPrev;
+  document.getElementById('btn-next').disabled = !hasNext;
+  document.getElementById('arr-next').disabled = !hasNext;
+}
+
+function updateComplete() {
+  if (!queue.length || !queue[idx]) return;
+  const btn = document.getElementById('btn-complete');
+  const done = isDone(queue[idx].path);
+  btn.textContent = done ? '✓ Completed' : '✓ Mark Done';
+  btn.classList.toggle('done', done);
+}
+
+function render() {
+  const embedWrap = document.getElementById('embed-wrap');
+
+  if (!queue.length || !queue[idx]) {
+    document.getElementById('tb-breadcrumb').textContent = 'GATE HUB';
+    document.getElementById('tb-title').textContent = 'No PDF selected';
+    document.getElementById('tb-counter').textContent = '0 / 0';
+    embedWrap.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📂</div>
+        <div class="empty-title">No PDF Selected</div>
+        <p class="empty-desc">Please open a PDF from the GATE HUB dashboard or subjects list.</p>
+        <a href="index.html" class="empty-btn">← Back to Dashboard</a>
+      </div>
+    `;
+    return;
+  }
+
+  const file = queue[idx];
+
+  // Topbar info
+  document.getElementById('tb-breadcrumb').textContent = [subjectName, topicName].filter(Boolean).join(' · ');
+  document.getElementById('tb-title').textContent = file.name;
+  document.getElementById('tb-counter').textContent = (idx + 1) + ' / ' + queue.length;
+  document.title = file.name + ' — GATE HUB';
+
+  // Direct link
+  const directLink = document.getElementById('direct-link');
+  directLink.href = encodeURI(file.path);
+
+  // Render iframe with relative path
+  embedWrap.innerHTML = `
+    <iframe id="pdf-frame" class="pdf-embed" src="${encodeURI(file.path)}" title="${file.name}" allow="fullscreen"></iframe>
+  `;
+
+  updateNav();
+  updateComplete();
+
+  // Save last opened
+  try {
+    const prog = loadProg();
+    prog.lastOpened = { path: file.path, name: file.name, sid: currentSid, tid: currentTid };
+    saveProg(prog);
+  } catch(_) {}
+
+  // Update URL without page reload
+  try {
+    const p = new URLSearchParams();
+    if (currentSid) p.set('sid', currentSid);
+    if (currentTid) p.set('tid', currentTid);
+    p.set('idx', idx);
+    p.set('file', file.path);
+    p.set('title', file.name);
+    history.replaceState(null, '', '?' + p.toString());
+  } catch(_) {}
+}
+
+function go(dir) {
+  const next = idx + dir;
+  if (next < 0 || next >= queue.length) return;
+  idx = next;
+  render();
+}
+
+// Event Listeners
+document.getElementById('btn-prev').addEventListener('click', () => go(-1));
+document.getElementById('btn-next').addEventListener('click', () => go(1));
+document.getElementById('arr-prev').addEventListener('click', () => go(-1));
+document.getElementById('arr-next').addEventListener('click', () => go(1));
+
+document.getElementById('btn-complete').addEventListener('click', () => {
+  if (!queue.length || !queue[idx]) return;
+  const nowDone = toggleDone(queue[idx].path);
+  updateComplete();
+  toast(nowDone ? '✓ Marked as completed!' : 'Marked as incomplete');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    go(-1);
+  } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    go(1);
+  }
+});
+
+// Initialize on page load
+initQueue();
+render();
+</script>
+</body>
+</html>
